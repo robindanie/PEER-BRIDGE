@@ -167,8 +167,8 @@ async function openProfileModal(userId, contextType) {
   const availability = (target.availabilityDays || []).map(d => `<span class="badge">${d}</span>`).join('') + ' ' + (target.availabilityTime || []).map(t => `<span class="badge">${t}</span>`).join(' ');
   const address = target.address || {};
   const addressText = `${address.doorNumber ? address.doorNumber + ', ' : ''}${address.street ? address.street + '<br/>' : ''}${address.city ? address.city + '<br/>' : ''}${address.state ? address.state + ' - ' : ''}${address.postalCode || ''}`;
-  const left = `<div class="profile-left"><div class="profile-identity card"><div class="avatar-placeholder">${(target.name||'?').slice(0,1)}</div><div><h3>${target.name || 'Unknown'}</h3><div class="meta"><span class="stars">${'★'.repeat(ratingToStars(target.rating != null ? target.rating : 3))}</span><span class="review-count"> ${target.totalRatings || 0} Reviews</span></div></div></div><div class="card"><div class="profile-label">Email</div><div class="profile-value">${target.email || '-'}</div></div><div class="card"><div class="profile-label">Phone</div><div class="profile-value">${target.phone || '-'}</div></div><div class="card"><div class="profile-label">Region</div><div class="profile-value">${target.region || '-'}</div></div></div>`;
-  const middle = `<div class="profile-middle"><div class="card"><div class="profile-label">Address</div><div class="profile-value">${addressText || '-'}</div></div><div class="card"><div class="profile-label">Availability</div><div class="profile-value">${availability || '-'}</div></div><div class="card"><div class="profile-label">Strong Subjects</div><div class="profile-value">${strongTags || '-'}</div></div><div class="card"><div class="profile-label">Weak Subjects</div><div class="profile-value">${weakTags || '-'}</div></div><div class="card"><div class="profile-label">About Me</div><div class="profile-value">${target.bio || 'No bio added.'}</div></div></div>`;
+  const left = `<div class="profile-left"><div class="profile-identity card"><div class="avatar-placeholder">${(target.name||'?').slice(0,1)}</div><div><h3>${target.name || 'Unknown'}</h3><div class="meta"><span class="stars">${'★'.repeat(ratingToStars(target.rating != null ? target.rating : 3))}</span><span class="review-count"> ${target.totalRatings || 0} Reviews</span></div></div></div><div class="card"><div class="profile-label">Email</div><div class="profile-value">${target.email || '-'}</div></div><div class="card"><div class="profile-label">Phone</div><div class="profile-value">${target.phone || '-'}</div></div><div class="card"><div class="profile-label">Region</div><div class="profile-value">${target.region || '-'}</div></div><div class="card"><div class="profile-label">About Me</div><div class="profile-value">${target.bio || 'No bio added.'}</div></div></div>`;
+  const middle = `<div class="profile-middle"><div class="card"><div class="profile-label">Address</div><div class="profile-value">${addressText || '-'}</div></div><div class="card"><div class="profile-label">Availability</div><div class="profile-value">${availability || '-'}</div></div><div class="card"><div class="profile-label">Strong Subjects</div><div class="profile-value">${strongTags || '-'}</div></div><div class="card"><div class="profile-label">Weak Subjects</div><div class="profile-value">${weakTags || '-'}</div></div></div>`;
   const right = `<div class="profile-right"><div id="reviewsPreview" class="card reviews-column"><div class="profile-label">Reviews</div><div class="profile-value">Loading...</div></div></div>`;
   const footer = `<div class="actions"><button id="closeModalBtn" class="btn secondary">Close</button> ${(contextType === 'tutor') ? `<button class="btn request-session" data-id="${userId}">Request Session</button>` : `<button class="btn offer-help" data-id="${userId}">Offer Help</button>`}</div>`;
   const gridHtml = `<div class="profile-modal-grid">${left}${middle}${right}</div>${footer}`;
@@ -323,6 +323,19 @@ async function setupNotificationBell() {
   let unsub = null;
   // local dismissed set so dismissed notifications stay hidden for this session
   const dismissed = new Set();
+  const viewed = new Set();
+  let latestNotifications = [];
+
+  function markCurrentNotificationsViewed() {
+    latestNotifications.forEach((n) => {
+      if (n?.id && n.unread) viewed.add(n.id);
+    });
+    if (dot) dot.classList.add('hidden');
+    document.querySelectorAll('.notif-card.notif-unread').forEach((card) => {
+      card.classList.remove('notif-unread');
+      card.style.borderLeft = '';
+    });
+  }
 
   function renderList(list) {
     const notifList = document.getElementById('notifList');
@@ -330,6 +343,7 @@ async function setupNotificationBell() {
     notifList.innerHTML = '';
     // filter out locally dismissed notifications
     list = (list || []).filter(n => n && !dismissed.has(n.id));
+    latestNotifications = list;
     if (!list.length) {
       notifList.innerHTML = '<p class="hint">No notifications</p>';
       dot?.classList.add('hidden');
@@ -341,7 +355,7 @@ async function setupNotificationBell() {
       const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
       return tb - ta;
     });
-    const unread = list.filter(n => n.unread).length;
+    const unread = list.filter(n => n.unread && !viewed.has(n.id)).length;
     if (dot) dot.classList.toggle('hidden', unread === 0);
     list.forEach(n => {
       const card = document.createElement('div'); card.className = 'notif-card'; card.dataset.id = n.id; card.style.position = 'relative';
@@ -431,7 +445,7 @@ async function setupNotificationBell() {
       }
       card.appendChild(actions);
       // visual unread marker (only for unread items)
-      if (n.unread) {
+      if (n.unread && !viewed.has(n.id)) {
         card.classList.add('notif-unread');
         card.style.borderLeft = '4px solid #d5b893';
       } else {
@@ -475,6 +489,7 @@ async function setupNotificationBell() {
     } else {
       panel.classList.add('open');
       bell.setAttribute('aria-expanded', 'true');
+      markCurrentNotificationsViewed();
     }
   });
 }
@@ -987,8 +1002,8 @@ async function initProfilePage() {
   const starCount = ratingToStars(userToShow.rating != null ? userToShow.rating : 3);
   const starsHtml = '<span class="stars">' + '★'.repeat(starCount) + '</span>';
   const reviewsSummary = `<div class="meta">${starsHtml}<span class="review-count"> ${userToShow.totalRatings || 0} Reviews</span></div>`;
-  const left = `<div class="profile-left"><div class="profile-identity card"><div class="avatar-placeholder">${(userToShow.name||'?').slice(0,1)}</div><div><h3>${userToShow.name || 'Unknown'}</h3>${reviewsSummary}</div></div><div class="card"><div class="profile-label">Email</div><div class="profile-value">${userToShow.email || '-'}</div></div><div class="card"><div class="profile-label">Phone</div><div class="profile-value">${userToShow.phone || '-'}</div></div><div class="card"><div class="profile-label">Region</div><div class="profile-value">${userToShow.region || '-'}</div></div></div>`;
-  const middle = `<div class="profile-middle"><div class="card"><div class="profile-label">Address</div><div class="profile-value">${addressText || '-'}</div></div><div class="card"><div class="profile-label">Availability</div><div class="profile-value">${availability || '-'}</div></div><div class="card"><div class="profile-label">Strong Subjects</div><div class="profile-value">${strongTags || '-'}</div></div><div class="card"><div class="profile-label">Weak Subjects</div><div class="profile-value">${weakTags || '-'}</div></div><div class="card"><div class="profile-label">About Me</div><div class="profile-value">${userToShow.bio || 'No bio added.'}</div></div></div>`;
+  const left = `<div class="profile-left"><div class="profile-identity card"><div class="avatar-placeholder">${(userToShow.name||'?').slice(0,1)}</div><div><h3>${userToShow.name || 'Unknown'}</h3>${reviewsSummary}</div></div><div class="card"><div class="profile-label">Email</div><div class="profile-value">${userToShow.email || '-'}</div></div><div class="card"><div class="profile-label">Phone</div><div class="profile-value">${userToShow.phone || '-'}</div></div><div class="card"><div class="profile-label">Region</div><div class="profile-value">${userToShow.region || '-'}</div></div><div class="card"><div class="profile-label">About Me</div><div class="profile-value">${userToShow.bio || 'No bio added.'}</div></div></div>`;
+  const middle = `<div class="profile-middle"><div class="card"><div class="profile-label">Address</div><div class="profile-value">${addressText || '-'}</div></div><div class="card"><div class="profile-label">Availability</div><div class="profile-value">${availability || '-'}</div></div><div class="card"><div class="profile-label">Strong Subjects</div><div class="profile-value">${strongTags || '-'}</div></div><div class="card"><div class="profile-label">Weak Subjects</div><div class="profile-value">${weakTags || '-'}</div></div></div>`;
   const right = `<div class="profile-right"><div id="profileReviews" class="card reviews-column"><div class="profile-label">Reviews</div><div class="profile-value">No reviews yet.</div></div></div>`;
   profileContent.innerHTML = `<div class="profile-page-shell"><div class="profile-modal-grid">${left}${middle}${right}</div></div>`;
   // load reviews area
@@ -1032,7 +1047,18 @@ async function initSessionsPage() {
     const active = sessions.filter(s => (s.status || '').toLowerCase() !== 'completed');
     const completed = sessions.filter(s => (s.status || '').toLowerCase() === 'completed');
 
-    const activeHeader = document.createElement('h2'); activeHeader.textContent = 'Active Sessions'; allSessionsEl.appendChild(activeHeader);
+    const sessionsLayout = document.createElement('div');
+    sessionsLayout.className = 'sessions-layout';
+    const activeColumn = document.createElement('section');
+    activeColumn.className = 'sessions-column';
+    const completedColumn = document.createElement('section');
+    completedColumn.className = 'sessions-column';
+    sessionsLayout.appendChild(activeColumn);
+    sessionsLayout.appendChild(completedColumn);
+    allSessionsEl.appendChild(sessionsLayout);
+
+    const activeHeader = document.createElement('h2'); activeHeader.textContent = 'Active Sessions'; activeColumn.appendChild(activeHeader);
+    if (!active.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No active sessions yet.'; activeColumn.appendChild(p); }
     active.forEach(s => {
       const el = document.createElement('div'); el.innerHTML = sessionCard(s, userMap);
       const card = el.firstElementChild;
@@ -1045,6 +1071,7 @@ async function initSessionsPage() {
         statusEl.textContent = (s.studentID === curr.id) ? 'Request Sent' : ((s.tutorID === curr.id) ? 'Offer Sent' : 'Pending');
         statusEl.className = 'status pending';
       } else if (stLower === 'accepted') { statusEl.textContent = 'Accepted'; statusEl.className = 'status accepted'; }
+      else if (stLower === 'rejected' || stLower === 'declined') { statusEl.textContent = 'Declined'; statusEl.className = 'status declined'; }
 
       if (stLower === 'accepted') {
         const mark = document.createElement('button'); mark.className = 'btn'; mark.innerHTML = '<span class="btn-text">Mark Completed</span><span class="btn-spinner hidden" aria-hidden="true"></span>';
@@ -1060,11 +1087,11 @@ async function initSessionsPage() {
         // handled in completed section
       }
 
-      allSessionsEl.appendChild(card);
+      activeColumn.appendChild(card);
     });
 
-    const compHeader = document.createElement('h2'); compHeader.textContent = 'Completed Sessions'; allSessionsEl.appendChild(compHeader);
-    if (!completed.length) { const p = document.createElement('p'); p.textContent = 'No completed sessions yet.'; allSessionsEl.appendChild(p); }
+    const compHeader = document.createElement('h2'); compHeader.textContent = 'Completed Sessions'; completedColumn.appendChild(compHeader);
+    if (!completed.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No completed sessions yet.'; completedColumn.appendChild(p); }
     else {
       completed.forEach(s => {
         const el = document.createElement('div'); el.innerHTML = sessionCard(s, userMap); const card = el.firstElementChild;
@@ -1130,7 +1157,7 @@ async function initSessionsPage() {
             } catch (err) { console.error(err); setButtonLoading(btn, '', false); showToast('Failed to submit rating'); }
           });
         }
-        allSessionsEl.appendChild(card);
+        completedColumn.appendChild(card);
       });
     }
   }

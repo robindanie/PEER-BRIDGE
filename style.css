@@ -302,6 +302,7 @@ textarea {
 .pending { background: #f59e0b; color: #1f2937; }
 .accepted { background: #3b82f6; color: #042a5a; }
 .completed { background: #10b981; color: #042d1f; }
+.declined { background: #6b7280; color: #f8fafc; }
 
 /* Notification bell */
 .notif-bell { position: relative; background: transparent; border: none; color: var(--text); font-size: 1.15rem; margin-left: 0.6rem; cursor: pointer; }
@@ -513,7 +514,7 @@ button:hover,
   display: grid;
   grid-template-columns: minmax(220px, 0.85fr) minmax(280px, 1.18fr) minmax(260px, 0.95fr);
   gap: 1rem;
-  align-items: stretch;
+  align-items: start;
 }
 
 .profile-left,
@@ -534,7 +535,7 @@ button:hover,
   display: flex;
   align-items: center;
   gap: 0.9rem;
-  min-height: 118px;
+  min-height: 96px;
 }
 
 .profile-identity h3 {
@@ -564,6 +565,11 @@ button:hover,
   margin-top: 0;
 }
 
+.profile-modal .card,
+.profile-page-shell .card {
+  padding: 1rem;
+}
+
 .profile-label {
   color: var(--tan);
   font-size: 0.78rem;
@@ -585,7 +591,7 @@ button:hover,
 
 .reviews-column {
   height: 100%;
-  min-height: 420px;
+  min-height: 390px;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -750,11 +756,61 @@ button:hover,
 .session-card {
   display: grid;
   gap: 0.25rem;
+  align-content: start;
 }
 
 .session-card .card {
   background: rgba(20, 30, 48, 0.28);
   border-color: rgba(213, 184, 147, 0.18);
+}
+
+.sessions-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.sessions-column {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.sessions-column h2 {
+  margin: 0 0 0.15rem;
+  color: var(--tan);
+  font-size: 1.05rem;
+}
+
+.status {
+  width: fit-content;
+  justify-self: start;
+  align-self: start;
+  margin-top: 0.35rem;
+  padding: 0.28rem 0.68rem;
+  line-height: 1;
+  box-shadow: 0 6px 14px rgba(12, 16, 25, 0.16);
+}
+
+.status.pending {
+  background: rgba(245, 158, 11, 0.82);
+  color: #1f2937;
+}
+
+.status.accepted {
+  background: #10b981;
+  color: #042d1f;
+}
+
+.status.completed {
+  background: #3b82f6;
+  color: #f8fafc;
+}
+
+.status.declined {
+  background: #6b7280;
+  color: #f8fafc;
 }
 
 @media (max-width: 940px) {
@@ -763,6 +819,10 @@ button:hover,
   }
 
   .profile-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sessions-layout {
     grid-template-columns: 1fr;
   }
 
