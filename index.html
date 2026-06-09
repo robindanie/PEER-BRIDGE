@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PeerBridge | Velammal College of Engineering</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body data-page="home">
+  <header class="navbar">
+    <a href="index.html" class="logo">PeerBridge</a>
+    <nav>
+      <a href="student.html">Find Tutors</a>
+      <a href="sessions.html">Sessions</a>
+      <a href="profile.html">Profile</a>
+      <a href="index.html" id="logoutBtn">Logout</a>
+    </nav>
+  </header>
+
+  <main class="container hero">
+    <section class="card hero-card">
+      <p class="eyebrow">Velammal College of Engineering and Technology</p>
+      <h1>Hello Velammalian! Welcome to PeerBridge.</h1>
+      <p>Connect, learn, and grow with a smart peer tutoring network built for your campus community.</p>
+      <div class="button-row">
+        <a class="btn" href="register.html">Register</a>
+        <button type="button" id="openLogin" class="btn secondary">Login</button>
+      </div>
+      <div id="loginPanel" class="card login-panel hidden" style="margin-top: 1rem;">
+        <h2>Existing user login</h2>
+        <form id="loginForm">
+          <label>Email<input type="email" name="email" required /></label>
+          <label>Password<input type="password" name="password" required minlength="6" /></label>
+          <button type="submit" class="btn">Login</button>
+        </form>
+        <p id="loginMessage" class="message"></p>
+      </div>
+    </section>
+    <section class="features">
+      <div class="feature-card">
+        <h3>Smart Matching</h3>
+        <p>Automatically connects students with tutors based on subject strengths.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Session Scheduling</h3>
+        <p>Book tutoring sessions easily with available tutors.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Peer Ratings</h3>
+        <p>Students rate sessions to build a trusted learning network.</p>
+      </div>
+    </section>  </main>
+
+  <footer class="footer">
+    PeerBridge © 2026 | Velammal College of Engineering and Technology
+  </footer>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>

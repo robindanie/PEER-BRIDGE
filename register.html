@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register | PeerBridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-page="register">
+  <header class="navbar">
+    <a href="index.html" class="logo">PeerBridge</a>
+    <nav>
+      <a href="student.html">Find Tutors</a>
+      <a href="sessions.html">Sessions</a>
+      <a href="profile.html">Profile</a>
+      <a href="index.html" id="logoutBtn">Logout</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card form-card">
+      <h1>Create your PeerBridge account</h1>
+      <form id="registrationForm" class="grid-form">
+        <label>Full Name<input name="name" required /></label>
+        <label>Date of Birth<input type="date" name="dob" required /></label>
+        <label>Gender
+          <select name="gender" required>
+            <option value="">Select</option>
+            <option>Female</option>
+            <option>Male</option>
+            <option>Other</option>
+          </select>
+        </label>
+        <label>Email<input type="email" name="email" required /></label>
+        <label>Phone Number<input type="tel" name="phone" required /></label>
+
+        <h2 class="full">Address</h2>
+        <label>Door Number<input name="doorNumber" required /></label>
+        <label>Street / Area<input name="street" required /></label>
+        <label>Region / Locality<input name="region" required /></label>
+        <label>City<input name="city" required /></label>
+        <label>State<input name="state" required /></label>
+        <label>Postal Code<input name="postalCode" required /></label>
+
+        <h2 class="full">Account Security</h2>
+        <label>Password<input type="password" name="password" required minlength="6" /></label>
+        <label>Confirm Password<input type="password" name="confirmPassword" required minlength="6" /></label>
+
+        <h2 class="full">Academic Information</h2>
+        <label>Strong Subjects
+          <div id="strongSubjectChips" class="chip-container"></div>
+          <small class="hint">Tap to select your strong subjects</small>
+        </label>
+        <label>Weak Subjects
+          <div id="weakSubjectChips" class="chip-container"></div>
+          <small class="hint">Tap to select subjects you need tutoring in</small>
+        </label>
+
+        <h2 class="full">Availability</h2>
+        <label>Days
+          <div id="availabilityDaysChips" class="chip-container"></div>
+          <small class="hint">Choose one or more days</small>
+        </label>
+        <label>Time
+          <div id="availabilityTimeChips" class="chip-container"></div>
+          <small class="hint">Choose one or more time slots</small>
+        </label>
+
+        <label class="full">Bio (optional)
+          <textarea name="bio" rows="4" placeholder="Share your learning goals and tutoring strengths."></textarea>
+        </label>
+
+        <button type="submit" class="btn full">Create Account</button>
+      </form>
+      <p id="registerMessage" class="message"></p>
+    </section>
+  </main>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
