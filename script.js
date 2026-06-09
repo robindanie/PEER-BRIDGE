@@ -191,6 +191,15 @@ async function openProfileModal(userId, contextType) {
       grid.style.gap = '18px';
       grid.style.alignItems = 'start';
     }
+      // limit modal height and make reviews column scrollable independently
+      modalEl.style.maxHeight = '80vh';
+      modalEl.style.overflowY = 'hidden';
+      const reviewsCol = modalEl.querySelector('#reviewsPreview');
+      if (reviewsCol) {
+        reviewsCol.style.maxHeight = '64vh';
+        reviewsCol.style.overflowY = 'auto';
+        reviewsCol.style.paddingRight = '8px';
+      }
   }
   (async () => {
     try {
@@ -284,15 +293,18 @@ async function openSessionModal(targetUserId, mode) {
       }
       if (sendBtn) { sendBtn.disabled = true; if (sendBtnSpinner) sendBtnSpinner.classList.remove('hidden'); if (sendBtnText) sendBtnText.textContent = 'Sending...'; }
       const docRef = (mode === 'request') ? await createSessionRequest(curr.id, targetUserId, subject, date, time) : await createSessionRequest(targetUserId, curr.id, subject, date, time);
+      // distinguish between a request and an offer so recipient message is accurate
       const notifPayload = {
-        recipientID: tutorId,
+        recipientID: (mode === 'request') ? tutorId : studentId,
         senderID: curr.id,
         senderName: curr.name || 'Someone',
         subject,
         date,
         time,
         requestID: docRef.id,
-        status: 'pending'
+        status: 'pending',
+        type: (mode === 'request') ? 'request' : 'offer',
+        message: (mode === 'request') ? `${curr.name || 'Someone'} has requested help in ${subject}.` : `${curr.name || 'Someone'} has offered to help you with ${subject}.`
       };
       await createNotification(notifPayload);
       if (sourceButton) {
@@ -302,7 +314,7 @@ async function openSessionModal(targetUserId, mode) {
         sourceButton.style.cursor = 'not-allowed';
       }
       closeModal();
-      showToast('✅ Request sent successfully');
+      showToast(mode === 'request' ? '✅ Request sent successfully' : '✅ Offer sent successfully');
       setTimeout(() => { location.href = 'sessions.html'; }, 700);
     } catch (err) { console.error(err); showToast('Failed to send request.'); if (sendBtn) { sendBtn.disabled = false; if (sendBtnSpinner) sendBtnSpinner.classList.add('hidden'); if (sendBtnText) sendBtnText.textContent = 'Send Request'; } }
   });
@@ -364,11 +376,13 @@ async function setupNotificationBell() {
       view.addEventListener('click', async () => {
         console.log('Notif: View clicked', n.id, n.senderID);
         panel.classList.remove('open');
-        if (window.openProfileModal) {
+        try {
           const contextType = await getProfileContextType(n.senderID);
-          window.openProfileModal(n.senderID, contextType);
-        } else {
-          console.warn('openProfileModal not available in this scope');
+          // call the shared profile modal directly
+          if (typeof openProfileModal === 'function') openProfileModal(n.senderID, contextType);
+          else if (window.openProfileModal) window.openProfileModal(n.senderID, contextType);
+        } catch (err) {
+          console.warn('Failed to open profile from notification', err);
         }
       });
       actions.appendChild(view);
