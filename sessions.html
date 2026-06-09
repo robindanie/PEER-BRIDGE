@@ -13,9 +13,10 @@
   <header class="navbar">
     <a href="index.html" class="logo">PeerBridge</a>
     <nav>
-      <a href="student.html">Find Tutors</a>
+      <a href="student.html">Community</a>
       <a href="sessions.html">Sessions</a>
       <a href="profile.html">Profile</a>
+      <button id="notifBell" class="notif-bell" aria-haspopup="true" aria-expanded="false">🔔<span id="notifDot" class="dot hidden"></span></button>
       <a href="index.html" id="logoutBtn">Logout</a>
     </nav>
   </header>
@@ -28,5 +29,7 @@
   </main>
 
   <script type="module" src="script.js"></script>
+  <div id="modalContainer" class="modal-container hidden" aria-hidden="true"></div>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 </body>
 </html>

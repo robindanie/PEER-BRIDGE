@@ -13,7 +13,7 @@
   <header class="navbar">
     <a href="index.html" class="logo">PeerBridge</a>
     <nav>
-      <a href="student.html">Find Tutors</a>
+      <a href="student.html">Community</a>
       <a href="sessions.html">Sessions</a>
       <a href="profile.html">Profile</a>
       <a href="index.html" id="logoutBtn">Logout</a>
@@ -21,23 +21,28 @@
   </header>
 
   <main class="container">
-    <h1>Tutor Dashboard</h1>
-    <section class="dashboard-grid">
-      <div class="card">
-        <h2>Student Requests</h2>
-        <div id="studentRequests" class="list"></div>
+    <section class="card">
+      <h1 id="dashboardTitle">Hello, Peer!</h1>
+      <p class="subtitle">What would you like to do today?</p>
+      <div class="dashboard-actions">
+        <div class="action-card">
+          <h3>Learn</h3>
+          <p>Find peers who can help you improve in subjects you're learning.</p>
+          <button id="findTutorsBtn" class="btn">Find Tutors</button>
+        </div>
+        <div class="action-card">
+          <h3>Teach</h3>
+          <p>Help fellow students by sharing knowledge in subjects you're confident in.</p>
+          <button id="helpStudentsBtn" class="btn">Help Students</button>
+        </div>
       </div>
-      <div class="card">
-        <h2>Teaching Sessions</h2>
-        <div id="teachingSessions" class="list"></div>
-      </div>
-      <div class="card">
-        <h2>Completed Sessions</h2>
-        <div id="tutorCompletedSessions" class="list"></div>
-      </div>
+
+      <div id="resultsContainer" class="list" style="margin-top:1rem;"></div>
     </section>
   </main>
 
   <script type="module" src="script.js"></script>
+  <div id="modalContainer" class="modal-container hidden" aria-hidden="true"></div>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 </body>
 </html>

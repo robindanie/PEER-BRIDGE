@@ -10,6 +10,7 @@ import {
   doc,
   updateDoc,
   serverTimestamp
+  , onSnapshot
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -27,6 +28,8 @@ const db = getFirestore(app);
 const usersRef = collection(db, 'users');
 const sessionsRef = collection(db, 'sessions');
 const ratingsRef = collection(db, 'ratings');
+const notificationsRef = collection(db, 'notifications');
+const reviewsRef = collection(db, 'reviews');
 
 export async function registerUser(payload) {
   const created = await addDoc(usersRef, {
@@ -93,6 +96,78 @@ export async function createSessionRequest(studentID, tutorID, subject, date, ti
   });
 }
 
+export async function findPendingOrAcceptedSession(studentID, tutorID, subject) {
+  const q = query(
+    sessionsRef,
+    where('studentID', '==', studentID),
+    where('tutorID', '==', tutorID),
+    where('subject', '==', subject),
+    where('status', 'in', ['pending', 'accepted'])
+  );
+  const res = await getDocs(q);
+  if (res.empty) return null;
+  const first = res.docs[0];
+  return { id: first.id, ...first.data() };
+}
+
+export async function createNotification(payload) {
+  const created = await addDoc(notificationsRef, {
+    ...payload,
+    unread: true,
+    createdAt: serverTimestamp()
+  });
+  return created.id;
+}
+
+export function subscribeNotificationsForUser(userId, onChange) {
+  const q = query(notificationsRef, where('recipientID', '==', userId));
+  const unsub = onSnapshot(q, (snap) => {
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(n => !n.deletedAt);
+    onChange(list);
+  });
+  return unsub;
+}
+
+export function subscribeSessionsForUser(userId, onChange) {
+  const q1 = query(sessionsRef, where('studentID', '==', userId));
+  const q2 = query(sessionsRef, where('tutorID', '==', userId));
+  // listen both and merge
+  const unsub1 = onSnapshot(q1, () => fetchAndNotify());
+  const unsub2 = onSnapshot(q2, () => fetchAndNotify());
+  let stopped = false;
+  async function fetchAndNotify() {
+    if (stopped) return;
+    const byStudent = await getDocs(query(sessionsRef, where('studentID', '==', userId)));
+    const byTutor = await getDocs(query(sessionsRef, where('tutorID', '==', userId)));
+    const map = new Map();
+    [...byStudent.docs, ...byTutor.docs].forEach((docSnap) => {
+      map.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+    });
+    onChange([...map.values()]);
+  }
+  // initial fetch
+  fetchAndNotify();
+  return () => { stopped = true; unsub1(); unsub2(); };
+}
+
+export async function getNotificationsForUser(userId) {
+  const q = query(notificationsRef, where('recipientID', '==', userId));
+  const snaps = await getDocs(q);
+  return snaps.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(n => !n.deletedAt);
+}
+
+export async function updateNotification(notificationId, data) {
+  const nRef = doc(db, 'notifications', notificationId);
+  await updateDoc(nRef, data);
+}
+
+export async function deleteNotification(notificationId) {
+  const nRef = doc(db, 'notifications', notificationId);
+  await updateDoc(nRef, { deletedAt: serverTimestamp() });
+}
+
 export async function acceptSessionRequest(sessionID) {
   const sessionRef = doc(db, 'sessions', sessionID);
   await updateDoc(sessionRef, { status: 'accepted' });
@@ -115,12 +190,14 @@ export async function submitRating(sessionID, studentRating, tutorRating) {
 
   const sessionData = sessionSnap.data();
 
-  if (typeof tutorRating === 'number' && sessionData.studentID) {
-    await updateUserRating(sessionData.studentID, tutorRating);
-  }
-
+  // studentRating refers to rating given by student to tutor -> update tutor
   if (typeof studentRating === 'number' && sessionData.tutorID) {
     await updateUserRating(sessionData.tutorID, studentRating);
+  }
+
+  // tutorRating refers to rating given by tutor to student -> update student
+  if (typeof tutorRating === 'number' && sessionData.studentID) {
+    await updateUserRating(sessionData.studentID, tutorRating);
   }
 
   await addDoc(ratingsRef, {
@@ -129,6 +206,23 @@ export async function submitRating(sessionID, studentRating, tutorRating) {
     tutorRating,
     createdAt: serverTimestamp()
   });
+}
+
+export async function addReview(userId, reviewerId, reviewerName, rating, feedback) {
+  return addDoc(reviewsRef, {
+    userId,
+    reviewerId,
+    reviewerName,
+    rating,
+    feedback: feedback || '',
+    createdAt: serverTimestamp()
+  });
+}
+
+export async function getReviewsForUser(userId) {
+  const q = query(reviewsRef, where('userId', '==', userId));
+  const snaps = await getDocs(q);
+  return snaps.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 export async function getSessionById(sessionID) {
