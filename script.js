@@ -1079,7 +1079,7 @@ async function initDashboardPage() {
 
     filterDiv.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 140px 130px 140px;gap:0.65rem;align-items:end;">
-        <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">🔍 Search</label><input id="communitySearch" type="text" placeholder="Search by name, subject, or region..." style="width:100%;padding:0.55rem 0.75rem;" /></div>
+        <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Search</label><div style="position:relative;display:flex;align-items:center;"><input id="communitySearch" type="text" placeholder="Search by name, subject, or region..." style="width:100%;padding:0.55rem 0.75rem;padding-right:2.2rem;" /><svg id="searchIconBtn" style="position:absolute;right:10px;cursor:pointer;color:rgba(213,184,147,0.7);flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div></div>
         <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Subject</label><select id="subjectFilter" style="width:100%;padding:0.55rem 0.75rem;">${subjectOptions}</select></div>
         <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Region</label><input id="regionFilter" type="text" placeholder="Filter..." style="width:100%;padding:0.55rem 0.75rem;" /></div>
         <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Sort</label><select id="sortBy" style="width:100%;padding:0.55rem 0.75rem;"><option value="rating">Highest Rated</option><option value="reviews">Most Reviews</option><option value="name-asc">Name A-Z</option><option value="name-desc">Name Z-A</option></select></div>
@@ -1207,8 +1207,9 @@ async function initDashboardPage() {
 }
 
 async function openEditProfileModal(targetUser) {
-  const modalContainer = getModalContainer();
-  if (!modalContainer) return;
+  // Instead of a modal, replace the profile content with a full settings-style page
+  const profileContent = document.getElementById('profileContent');
+  if (!profileContent) return;
   const currStrong = [...(targetUser.strongSubjects || [])];
   const currWeak = [...(targetUser.weakSubjects || [])];
   const currAvailDays = [...(targetUser.availabilityDays || [])];
@@ -1233,54 +1234,64 @@ async function openEditProfileModal(targetUser) {
     });
   }
 
-  const body = `
-    <div class="session-dialog"><h3 style="margin-bottom:0.5rem;">Edit Profile</h3>
-    <div class="card session-form-card" style="max-height:72vh;overflow-y:auto;padding:1rem;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
-        <label>Full Name<input id="editName" value="${targetUser.name || ''}" /></label>
-        <label>Email<input id="editEmail" value="${targetUser.email || ''}" /></label>
-        <label>Phone<input id="editPhone" value="${targetUser.phone || ''}" /></label>
-        <label>Region / Locality<input id="editRegion" value="${targetUser.region || ''}" /></label>
-        <label>City<input id="editCity" value="${addr.city || ''}" /></label>
-        <label>Door Number<input id="editDoor" value="${addr.doorNumber || ''}" /></label>
-        <label>Street / Area<input id="editStreet" value="${addr.street || ''}" /></label>
-        <label>State<input id="editState" value="${addr.state || ''}" /></label>
-        <div></div>
-        <label>Postal Code<input id="editPostal" value="${addr.postalCode || ''}" /></label>
+  profileContent.innerHTML = `
+    <div class="profile-page-shell edit-profile-page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <h2 style="margin:0;color:var(--tan);">Edit Profile</h2>
+        <div>
+          <button id="cancelEditPage" class="btn secondary" style="margin-right:0.5rem;">Cancel</button>
+          <button id="saveEditPage" class="btn"><span class="btn-text">Save Changes</span><span class="btn-spinner hidden"></span></button>
+        </div>
       </div>
-      <label style="margin-top:0.5rem;">Bio<textarea id="editBio" rows="2">${targetUser.bio || ''}</textarea></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-top:0.5rem;">
-        <label>Strong Subjects<div id="editStrongChips" class="chip-container"></div></label>
-        <label>Weak Subjects<div id="editWeakChips" class="chip-container"></div></label>
-        <label>Availability Days<div id="editAvailDaysChips" class="chip-container"></div></label>
-        <label>Availability Time<div id="editAvailTimeChips" class="chip-container"></div></label>
+      <div class="card" style="padding:1.25rem;">
+        <h3 style="margin:0 0 0.75rem;color:var(--tan);font-size:0.95rem;">Personal Information</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.85rem;">
+          <label>Full Name<input id="editName" value="${targetUser.name || ''}" /></label>
+          <label>Email<input id="editEmail" value="${targetUser.email || ''}" /></label>
+          <label>Phone<input id="editPhone" value="${targetUser.phone || ''}" /></label>
+        </div>
       </div>
-      <hr style="border-color:rgba(213,184,147,0.2);margin:0.85rem 0;" />
-      <h4 style="margin:0 0 0.6rem;color:var(--tan);font-size:0.9rem;">Change Password</h4>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.65rem;">
-        <label>Current Password<input id="editCurPw" type="password" placeholder="Required to change" /></label>
-        <label>New Password<input id="editNewPw" type="password" placeholder="Min 6 chars" /></label>
-        <label>Confirm New Password<input id="editConfirmPw" type="password" placeholder="Re-enter new" /></label>
+      <div class="card" style="padding:1.25rem;margin-top:0.85rem;">
+        <h3 style="margin:0 0 0.75rem;color:var(--tan);font-size:0.95rem;">Address & Location</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.85rem;">
+          <label>Region / Locality<input id="editRegion" value="${targetUser.region || ''}" /></label>
+          <label>City<input id="editCity" value="${addr.city || ''}" /></label>
+          <label>State<input id="editState" value="${addr.state || ''}" /></label>
+          <label>Door Number<input id="editDoor" value="${addr.doorNumber || ''}" /></label>
+          <label>Street / Area<input id="editStreet" value="${addr.street || ''}" /></label>
+          <label>Postal Code<input id="editPostal" value="${addr.postalCode || ''}" /></label>
+        </div>
       </div>
-      <div id="editPwError" style="color:#ef4444;font-size:0.82rem;min-height:1.1em;margin-top:4px;"></div>
+      <div class="card" style="padding:1.25rem;margin-top:0.85rem;">
+        <h3 style="margin:0 0 0.75rem;color:var(--tan);font-size:0.95rem;">Academic & Availability</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;">
+          <label>Strong Subjects<div id="editStrongChips" class="chip-container"></div></label>
+          <label>Weak Subjects<div id="editWeakChips" class="chip-container"></div></label>
+          <label>Availability Days<div id="editAvailDaysChips" class="chip-container"></div></label>
+          <label>Availability Time<div id="editAvailTimeChips" class="chip-container"></div></label>
+        </div>
+        <label style="margin-top:0.75rem;">Bio<textarea id="editBio" rows="2">${targetUser.bio || ''}</textarea></label>
+      </div>
+      <div class="card" style="padding:1.25rem;margin-top:0.85rem;">
+        <h3 style="margin:0 0 0.75rem;color:var(--tan);font-size:0.95rem;">Change Password</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.85rem;">
+          <label>Current Password<input id="editCurPw" type="password" placeholder="Required to change" /></label>
+          <label>New Password<input id="editNewPw" type="password" placeholder="Min 6 characters" /></label>
+          <label>Confirm New Password<input id="editConfirmPw" type="password" placeholder="Re-enter new password" /></label>
+        </div>
+        <div id="editPwError" style="color:#ef4444;font-size:0.82rem;min-height:1.1em;margin-top:4px;"></div>
+      </div>
     </div>
-    <div class="actions" style="margin-top:0.75rem;"><button id="cancelEditBtn" class="btn secondary">Cancel</button><button id="saveEditBtn" class="btn"><span class="btn-text">Save Changes</span><span class="btn-spinner hidden"></span></button></div></div>`;
-
-  openModal(body);
-  const modalEl = modalContainer.querySelector('.modal');
-  if (modalEl) {
-    modalEl.classList.add('session-modal', 'solid');
-    modalEl.style.maxWidth = '720px';
-  }
+  `;
 
   renderEditChips(document.getElementById('editStrongChips'), SUBJECTS, currStrong);
   renderEditChips(document.getElementById('editWeakChips'), SUBJECTS, currWeak);
   renderEditChips(document.getElementById('editAvailDaysChips'), AVAILABILITY_DAYS, currAvailDays);
   renderEditChips(document.getElementById('editAvailTimeChips'), AVAILABILITY_TIMES, currAvailTime);
 
-  document.getElementById('cancelEditBtn')?.addEventListener('click', closeModal);
-  document.getElementById('saveEditBtn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('saveEditBtn');
+  document.getElementById('cancelEditPage')?.addEventListener('click', () => initProfilePage());
+  document.getElementById('saveEditPage')?.addEventListener('click', async () => {
+    const btn = document.getElementById('saveEditPage');
     const spinner = btn?.querySelector('.btn-spinner');
     const text = btn?.querySelector('.btn-text');
     const pwError = document.getElementById('editPwError');
@@ -1305,7 +1316,6 @@ async function openEditProfileModal(targetUser) {
       }
     };
 
-    // Handle password change
     const curPw = document.getElementById('editCurPw')?.value || '';
     const newPw = document.getElementById('editNewPw')?.value || '';
     const confirmPw = document.getElementById('editConfirmPw')?.value || '';
@@ -1336,10 +1346,8 @@ async function openEditProfileModal(targetUser) {
       const fresh = await getUserById(targetUser.id);
       if (fresh) {
         setCurrentUser(fresh);
-        closeModal();
         showToast('Profile updated successfully');
-        const profileContent = document.getElementById('profileContent');
-        if (profileContent) initProfilePage();
+        initProfilePage();
       }
     } catch (err) {
       console.error(err);
