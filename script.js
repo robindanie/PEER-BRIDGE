@@ -230,10 +230,11 @@ async function openSessionModal(targetUserId, mode) {
   const sendBtn = modalContainer.querySelector('#sendSessionBtn');
   const sendBtnText = sendBtn?.querySelector('.btn-text');
   const sendBtnSpinner = sendBtn?.querySelector('.btn-spinner');
-  // add a small label and make selected state visually obvious
+  // add a label matching form label styling
   const timeSlotsEl = modalContainer.querySelector('#timeSlots');
   if (timeSlotsEl) {
-    const labelEl = document.createElement('div'); labelEl.textContent = 'Select a Time Slot'; labelEl.className = 'time-slot-label';
+    const labelEl = document.createElement('label'); labelEl.textContent = 'Time Slot';
+    labelEl.style.cssText = 'font-size:0.93rem;font-weight:600;display:grid;gap:0.4rem;';
     timeSlotsEl.parentNode.insertBefore(labelEl, timeSlotsEl);
   }
   modalContainer.querySelectorAll('.time-slot').forEach(btn => btn.addEventListener('click', (e) => {
@@ -321,8 +322,26 @@ async function setupNotificationBell() {
   }
 
   let unsub = null;
-  // local dismissed set so dismissed notifications stay hidden for this session
-  const dismissed = new Set();
+  // Load permanently dismissed notification IDs from localStorage
+  const DISMISSED_KEY = `peerbridge_dismissed_${curr.id}`;
+  function getDismissedIds() {
+    try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+  function addDismissedId(id) {
+    const set = getDismissedIds();
+    set.add(id);
+    localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]));
+  }
+  // Track last viewed timestamp per user to determine if a notification is truly new
+  const LAST_VIEWED_KEY = `peerbridge_last_viewed_${curr.id}`;
+  function getLastViewedTime() {
+    return Number(localStorage.getItem(LAST_VIEWED_KEY) || 0);
+  }
+  function setLastViewedTime() {
+    localStorage.setItem(LAST_VIEWED_KEY, Date.now().toString());
+  }
+
   const viewed = new Set();
   let latestNotifications = [];
 
@@ -330,6 +349,7 @@ async function setupNotificationBell() {
     latestNotifications.forEach((n) => {
       if (n?.id && n.unread) viewed.add(n.id);
     });
+    setLastViewedTime();
     if (dot) dot.classList.add('hidden');
     document.querySelectorAll('.notif-card.notif-unread').forEach((card) => {
       card.classList.remove('notif-unread');
@@ -341,8 +361,9 @@ async function setupNotificationBell() {
     const notifList = document.getElementById('notifList');
     if (!notifList) return;
     notifList.innerHTML = '';
-    // filter out locally dismissed notifications
-    list = (list || []).filter(n => n && !dismissed.has(n.id));
+    // Filter out permanently dismissed notifications from localStorage
+    const dismissedIds = getDismissedIds();
+    list = (list || []).filter(n => n && !dismissedIds.has(n.id));
     latestNotifications = list;
     if (!list.length) {
       notifList.innerHTML = '<p class="hint">No notifications</p>';
@@ -355,7 +376,12 @@ async function setupNotificationBell() {
       const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
       return tb - ta;
     });
-    const unread = list.filter(n => n.unread && !viewed.has(n.id)).length;
+    // Determine "truly new" notifications: those created after last viewed time
+    const lastViewed = getLastViewedTime();
+    const unread = list.filter(n => {
+      const nTime = n.createdAt && n.createdAt.toDate ? n.createdAt.toDate().getTime() : (n.createdAt ? new Date(n.createdAt).getTime() : 0);
+      return n.unread && nTime > lastViewed;
+    }).length;
     if (dot) dot.classList.toggle('hidden', unread === 0);
     list.forEach(n => {
       const card = document.createElement('div'); card.className = 'notif-card'; card.dataset.id = n.id; card.style.position = 'relative';
@@ -368,7 +394,8 @@ async function setupNotificationBell() {
       closeBtn.style.position = 'absolute'; closeBtn.style.top = '8px'; closeBtn.style.right = '8px'; closeBtn.style.border = 'none'; closeBtn.style.background = 'transparent'; closeBtn.style.color = 'rgba(255,255,255,0.8)'; closeBtn.style.fontSize = '18px'; closeBtn.style.cursor = 'pointer'; closeBtn.style.padding = '2px 6px';
       closeBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        dismissed.add(n.id);
+        addDismissedId(n.id);
+        dismissedIds.add(n.id);
         const currentCard = document.querySelector(`.notif-card[data-id="${n.id}"]`);
         if (currentCard) currentCard.remove();
         const remaining = notifList.querySelectorAll('.notif-card').length;
@@ -1047,6 +1074,27 @@ async function initSessionsPage() {
     const active = sessions.filter(s => (s.status || '').toLowerCase() !== 'completed');
     const completed = sessions.filter(s => (s.status || '').toLowerCase() === 'completed');
 
+    // Sort active sessions: accepted first, then pending/request/offer, then declined
+    function sortActiveSessions(a, b) {
+      const order = { 'accepted': 0, 'pending': 1, 'rejected': 2, 'declined': 2 };
+      const aOrd = order[(a.status || '').toLowerCase()] ?? 3;
+      const bOrd = order[(b.status || '').toLowerCase()] ?? 3;
+      if (aOrd !== bOrd) return aOrd - bOrd;
+      // Within same status, newest first by createdAt
+      const ta = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return tb - ta;
+    }
+    active.sort(sortActiveSessions);
+
+    // Sort completed sessions: newest first
+    function sortCompletedSessions(a, b) {
+      const ta = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return tb - ta;
+    }
+    completed.sort(sortCompletedSessions);
+
     const sessionsLayout = document.createElement('div');
     sessionsLayout.className = 'sessions-layout';
     const activeColumn = document.createElement('section');
@@ -1057,8 +1105,11 @@ async function initSessionsPage() {
     sessionsLayout.appendChild(completedColumn);
     allSessionsEl.appendChild(sessionsLayout);
 
-    const activeHeader = document.createElement('h2'); activeHeader.textContent = 'Active Sessions'; activeColumn.appendChild(activeHeader);
-    if (!active.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No active sessions yet.'; activeColumn.appendChild(p); }
+    // Active section with wrapper
+    const activeSection = document.createElement('div');
+    activeSection.className = 'sessions-section';
+    const activeHeader = document.createElement('h2'); activeHeader.textContent = 'Active Sessions'; activeSection.appendChild(activeHeader);
+    if (!active.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No active sessions yet.'; activeSection.appendChild(p); }
     active.forEach(s => {
       const el = document.createElement('div'); el.innerHTML = sessionCard(s, userMap);
       const card = el.firstElementChild;
@@ -1083,15 +1134,15 @@ async function initSessionsPage() {
         card.querySelector('.action-row')?.appendChild(mark);
       }
 
-      if (stLower === 'completed') {
-        // handled in completed section
-      }
-
-      activeColumn.appendChild(card);
+      activeSection.appendChild(card);
     });
+    activeColumn.appendChild(activeSection);
 
-    const compHeader = document.createElement('h2'); compHeader.textContent = 'Completed Sessions'; completedColumn.appendChild(compHeader);
-    if (!completed.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No completed sessions yet.'; completedColumn.appendChild(p); }
+    // Completed section with wrapper
+    const completedSection = document.createElement('div');
+    completedSection.className = 'sessions-section';
+    const compHeader = document.createElement('h2'); compHeader.textContent = 'Completed Sessions'; completedSection.appendChild(compHeader);
+    if (!completed.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = 'No completed sessions yet.'; completedSection.appendChild(p); }
     else {
       completed.forEach(s => {
         const el = document.createElement('div'); el.innerHTML = sessionCard(s, userMap); const card = el.firstElementChild;
@@ -1103,44 +1154,71 @@ async function initSessionsPage() {
         if (localStorage.getItem(reviewedKey)) {
           const saved = JSON.parse(localStorage.getItem(savedKey) || '{}');
           const savedHtml = document.createElement('div'); savedHtml.className = 'card rating-card';
-          const starsHtml = '★'.repeat(Math.max(1, Math.min(5, Math.round(saved.rating || 0))));
+          const starsCount = Math.max(1, Math.min(5, Math.round(saved.rating || 0)));
+          const starsHtml = '★'.repeat(starsCount);
           const feedbackText = saved.feedback ? `"${saved.feedback}"` : '';
-          savedHtml.innerHTML = `<div class="stars">${starsHtml}</div><div style="margin-top:6px;"><p>${feedbackText}</p></div>`;
+          const reviewerName = saved.reviewerName || 'You';
+          const reviewDate = saved.date ? new Date(saved.date).toLocaleDateString() : '';
+          savedHtml.innerHTML = `<div class="review-display"><div class="stars">${starsHtml}</div><div class="review-meta"><strong>${reviewerName}</strong><span>${reviewDate}</span></div>${feedbackText ? `<div class="review-feedback">${feedbackText}</div>` : ''}</div>`;
           card.appendChild(savedHtml);
         } else {
           const ratingContainer = document.createElement('div'); ratingContainer.className = 'card rating-card'; ratingContainer.innerHTML = `<div><strong>Rate ${otherName}</strong><div class="rating-stars" data-session="${s.id}"></div><textarea class="rating-feedback" placeholder="Optional feedback" rows="2"></textarea><div class="rating-actions"><button class="btn submit-rating"><span class="btn-text">Submit Rating</span><span class="btn-spinner hidden" aria-hidden="true"></span></button></div></div>`;
           card.appendChild(ratingContainer);
           const stars = ratingContainer.querySelector('.rating-stars');
+          let selectedRating = 0;
+          function highlightUpTo(value) {
+            const nodes = Array.from(stars.querySelectorAll('button'));
+            nodes.forEach((n, idx) => {
+              if (idx < value) n.classList.add('hover-preview');
+              else n.classList.remove('hover-preview');
+            });
+          }
+          function clearPreview() {
+            stars.querySelectorAll('.hover-preview').forEach(n => n.classList.remove('hover-preview'));
+          }
+          function applySelection(value) {
+            const nodes = Array.from(stars.querySelectorAll('button'));
+            nodes.forEach((n, idx) => {
+              if (idx < value) n.classList.add('active');
+              else n.classList.remove('active');
+            });
+          }
           for (let i=1;i<=5;i++) {
             const sEl = document.createElement('button');
             sEl.type='button'; sEl.className='star-btn'; sEl.textContent='★'; sEl.dataset.value=i;
-            sEl.addEventListener('mouseenter', ()=>{ sEl.style.transform='translateY(-4px) scale(1.06)'; });
-            sEl.addEventListener('mouseleave', ()=>{ sEl.style.transform=''; });
-            sEl.addEventListener('click', ()=>{
-              const nodes = Array.from(stars.querySelectorAll('button'));
-              nodes.forEach((n, idx) => {
-                if (idx <= i-1) n.classList.add('active'); else n.classList.remove('active');
-              });
+            sEl.addEventListener('mouseenter', () => {
+              const val = Number(sEl.dataset.value);
+              highlightUpTo(val);
+            });
+            sEl.addEventListener('mouseleave', () => {
+              clearPreview();
+            });
+            sEl.addEventListener('click', () => {
+              selectedRating = Number(sEl.dataset.value);
+              applySelection(selectedRating);
+              clearPreview();
             });
             stars.appendChild(sEl);
           }
+          // Clear preview when leaving the whole stars container
+          stars.addEventListener('mouseleave', clearPreview);
           ratingContainer.querySelector('.submit-rating')?.addEventListener('click', async (ev) => {
             const btn = ev.currentTarget;
-            const activeNodes = Array.from(stars.querySelectorAll('button.active'));
-            const selected = activeNodes.length ? Number(activeNodes[activeNodes.length - 1].dataset.value) : 0;
+            if (!selectedRating) { showToast('Please select a rating'); return; }
             const feedback = ratingContainer.querySelector('.rating-feedback').value;
-            if (!selected) { showToast('Please select a rating'); return; }
             setButtonLoading(btn, 'Submitting...', true);
             try {
-              if (curr.id === s.studentID) await submitRating(s.id, selected, null);
-              else await submitRating(s.id, null, selected);
-              const reviewerName = curr.name || 'Someone'; await addReview((curr.id === s.studentID) ? s.tutorID : s.studentID, curr.id, reviewerName, selected, feedback);
+              if (curr.id === s.studentID) await submitRating(s.id, selectedRating, null);
+              else await submitRating(s.id, null, selectedRating);
+              const reviewerName = curr.name || 'Someone';
+              await addReview((curr.id === s.studentID) ? s.tutorID : s.studentID, curr.id, reviewerName, selectedRating, feedback);
               // persist locally so the form stays hidden on future visits in this browser
+              const savedData = { rating: selectedRating, feedback, reviewerName, date: new Date().toISOString() };
               localStorage.setItem(reviewedKey, '1');
-              localStorage.setItem(savedKey, JSON.stringify({ rating: selected, feedback }));
+              localStorage.setItem(savedKey, JSON.stringify(savedData));
               setButtonLoading(btn, '', false);
-              console.log('Rating submitted for session', s.id, 'value', selected);
-              ratingContainer.innerHTML = '<div><div class="stars">' + '★'.repeat(selected) + '</div><p>Thank you for sharing your feedback.</p></div>';
+              console.log('Rating submitted for session', s.id, 'value', selectedRating);
+              ratingContainer.innerHTML = `<div class="review-display"><div class="stars">${'★'.repeat(selectedRating)}</div><div class="review-meta"><strong>${reviewerName}</strong><span>Just now</span></div>${feedback ? `<div class="review-feedback">"${feedback}"</div>` : ''}</div>`;
               const reviewsPreview = document.getElementById('reviewsPreview');
               if (reviewsPreview) {
                 try {
@@ -1157,9 +1235,10 @@ async function initSessionsPage() {
             } catch (err) { console.error(err); setButtonLoading(btn, '', false); showToast('Failed to submit rating'); }
           });
         }
-        completedColumn.appendChild(card);
+        completedSection.appendChild(card);
       });
     }
+    completedColumn.appendChild(completedSection);
   }
 
   // subscribe for realtime updates
