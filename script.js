@@ -91,7 +91,6 @@ const AVAILABILITY_DAYS = ['Weekdays', 'Weekends'];
 const AVAILABILITY_TIMES = ['Morning (6-10 AM)', 'Afternoon (12-4 PM)', 'Evening (5-9 PM)'];
 
 function ratingToStars(r) {
-  // return an exact rounded rating clamped between 1 and 5
   const val = Math.round(Number(r || 0));
   return Math.max(1, Math.min(5, val));
 }
@@ -208,7 +207,6 @@ async function openProfileModal(userId, contextType) {
   try { window.openProfileModal = openProfileModal; } catch (e) { /* ignore in restricted contexts */ }
 }
 
-// Check if a tutor is already booked for a given date and time slot
 async function checkDoubleBooking(tutorId, date, time, excludeSessionId) {
   const allSessions = await getAllSessions();
   return allSessions.some(s => {
@@ -233,28 +231,22 @@ async function openSessionModal(targetUserId, mode) {
   else common = (curr.strongSubjects || []).filter(s => (target.weakSubjects || []).includes(s));
   if (!common.length) { showToast('No subjects in common to schedule a session.'); return; }
 
-  // Load target user's availability for intelligent filtering
   const availDays = (target.availabilityDays || []).map(d => d.trim().toLowerCase());
   const availTimes = (target.availabilityTime || []).map(t => t.trim().toLowerCase());
 
-  // Determine which day types are allowed
   const allowWeekdays = availDays.includes('weekdays');
   const allowWeekends = availDays.includes('weekends');
-  // If both or neither, all days allowed (default to all)
   const restrictDays = (allowWeekdays !== allowWeekends);
 
-  // Map stored time labels to slot keys
   const allowedSlots = [];
   if (availTimes.some(t => t.includes('morning'))) allowedSlots.push('Morning');
   if (availTimes.some(t => t.includes('afternoon'))) allowedSlots.push('Afternoon');
   if (availTimes.some(t => t.includes('evening'))) allowedSlots.push('Evening');
-  // If no availability times stored, allow all slots
   const hasTimeRestrictions = allowedSlots.length > 0 && allowedSlots.length < 3;
 
   const subjectOptions = common.map(s => `<option value="${s}">${s}</option>`).join('');
   const title = mode === 'request' ? 'Request a Learning Session' : 'Offer Learning Support';
 
-  // Build time slot buttons with disabled state based on availability
   const allSlots = [
     { key: 'Morning', label: '🌅 Morning' },
     { key: 'Afternoon', label: '☀️ Afternoon' },
@@ -265,7 +257,6 @@ async function openSessionModal(targetUserId, mode) {
     return `<button type="button" class="btn time-slot" data-slot="${slot.key}" ${disabled ? 'disabled' : ''}>${slot.label}</button>`;
   }).join('');
 
-  // Build availability hint
   let availHint = '';
   const targetName = target.name || 'This user';
   let availDaysHuman = 'All Days';
@@ -284,7 +275,6 @@ async function openSessionModal(targetUserId, mode) {
   const sendBtn = modalContainer.querySelector('#sendSessionBtn');
   const sendBtnText = sendBtn?.querySelector('.btn-text');
   const sendBtnSpinner = sendBtn?.querySelector('.btn-spinner');
-  // add a label matching form label styling
   const timeSlotsEl = modalContainer.querySelector('#timeSlots');
   if (timeSlotsEl) {
     const labelEl = document.createElement('label'); labelEl.textContent = 'Time Slot';
@@ -292,25 +282,22 @@ async function openSessionModal(targetUserId, mode) {
     timeSlotsEl.parentNode.insertBefore(labelEl, timeSlotsEl);
   }
 
-  // Apply disabled styling to unavailable time slots
   modalContainer.querySelectorAll('.time-slot[disabled]').forEach(btn => {
     btn.style.opacity = '0.35';
     btn.style.cursor = 'not-allowed';
     btn.style.pointerEvents = 'none';
   });
 
-  // Add availability-aware date validation
   const dateInput = modalContainer.querySelector('#sessionDate');
   if (dateInput && restrictDays) {
     dateInput.addEventListener('input', function validateDate() {
       if (!this.value) return;
-      const day = new Date(this.value + 'T12:00:00').getDay(); // 0=Sun, 6=Sat
+      const day = new Date(this.value + 'T12:00:00').getDay();
       const isWeekend = (day === 0 || day === 6);
       const isValidDay = (allowWeekdays && !isWeekend) || (allowWeekends && isWeekend);
       if (!isValidDay) {
         this.setCustomValidity('This date doesn\'t match the user\'s availability.');
         this.style.borderColor = '#ef4444';
-        // Show a hint
         const hint = document.querySelector('.date-avail-hint') || (() => {
           const h = document.createElement('p');
           h.className = 'date-avail-hint';
@@ -362,7 +349,6 @@ async function openSessionModal(targetUserId, mode) {
         closeModal();
         return;
       }
-      // Double booking check: ensure tutor doesn't already have a session at this date+time
       const doubleBooked = await checkDoubleBooking(tutorId, date, time);
       if (doubleBooked) {
         if (sendBtn) { sendBtn.disabled = false; if (sendBtnSpinner) sendBtnSpinner.classList.add('hidden'); if (sendBtnText) sendBtnText.textContent = 'Send Request'; }
@@ -371,7 +357,6 @@ async function openSessionModal(targetUserId, mode) {
       }
       if (sendBtn) { sendBtn.disabled = true; if (sendBtnSpinner) sendBtnSpinner.classList.remove('hidden'); if (sendBtnText) sendBtnText.textContent = 'Sending...'; }
       const docRef = (mode === 'request') ? await createSessionRequest(curr.id, targetUserId, subject, date, time) : await createSessionRequest(targetUserId, curr.id, subject, date, time);
-      // distinguish between a request and an offer so recipient message is accurate
       const notifPayload = {
         recipientID: (mode === 'request') ? tutorId : studentId,
         senderID: curr.id,
@@ -407,14 +392,12 @@ async function hashPassword(rawPassword) {
     .join('');
 }
 
-// Notification UI helpers (used on multiple pages)
 async function setupNotificationBell() {
   const bell = document.getElementById('notifBell');
   const dot = document.getElementById('notifDot');
   if (!bell) return;
   const curr = getCurrentUser();
   if (!curr) return;
-  // create panel
   let panel = document.querySelector('.notif-panel');
   if (!panel) {
     panel = document.createElement('div'); panel.className = 'notif-panel'; panel.innerHTML = '<h3>Notifications</h3><div id="notifList"></div>';
@@ -422,7 +405,6 @@ async function setupNotificationBell() {
   }
 
   let unsub = null;
-  // Load permanently dismissed notification IDs from localStorage
   const DISMISSED_KEY = `peerbridge_dismissed_${curr.id}`;
   function getDismissedIds() {
     try { return new Set(JSON.parse(localStorage.getItem(DISMISSED_KEY) || '[]')); }
@@ -433,7 +415,6 @@ async function setupNotificationBell() {
     set.add(id);
     localStorage.setItem(DISMISSED_KEY, JSON.stringify([...set]));
   }
-  // Track last viewed timestamp per user to determine if a notification is truly new
   const LAST_VIEWED_KEY = `peerbridge_last_viewed_${curr.id}`;
   function getLastViewedTime() {
     return Number(localStorage.getItem(LAST_VIEWED_KEY) || 0);
@@ -461,7 +442,6 @@ async function setupNotificationBell() {
     const notifList = document.getElementById('notifList');
     if (!notifList) return;
     notifList.innerHTML = '';
-    // Filter out permanently dismissed notifications from localStorage
     const dismissedIds = getDismissedIds();
     list = (list || []).filter(n => n && !dismissedIds.has(n.id));
     latestNotifications = list;
@@ -470,13 +450,11 @@ async function setupNotificationBell() {
       dot?.classList.add('hidden');
       return;
     }
-    // sort by createdAt descending (newest first)
     list.sort((a, b) => {
       const ta = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
       const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
       return tb - ta;
     });
-    // Determine "truly new" notifications: those created after last viewed time
     const lastViewed = getLastViewedTime();
     const unread = list.filter(n => {
       const nTime = n.createdAt && n.createdAt.toDate ? n.createdAt.toDate().getTime() : (n.createdAt ? new Date(n.createdAt).getTime() : 0);
@@ -490,7 +468,6 @@ async function setupNotificationBell() {
       closeBtn.className = 'notif-close';
       closeBtn.innerHTML = '×';
       closeBtn.title = 'Dismiss';
-      // small clean styling to match PeerBridge
       closeBtn.style.position = 'absolute'; closeBtn.style.top = '8px'; closeBtn.style.right = '8px'; closeBtn.style.border = 'none'; closeBtn.style.background = 'transparent'; closeBtn.style.color = 'rgba(255,255,255,0.8)'; closeBtn.style.fontSize = '18px'; closeBtn.style.cursor = 'pointer'; closeBtn.style.padding = '2px 6px';
       closeBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -519,7 +496,6 @@ async function setupNotificationBell() {
         panel.classList.remove('open');
         try {
           const contextType = await getProfileContextType(n.senderID);
-          // call the shared profile modal directly
           if (typeof openProfileModal === 'function') openProfileModal(n.senderID, contextType);
           else if (window.openProfileModal) window.openProfileModal(n.senderID, contextType);
         } catch (err) {
@@ -539,7 +515,6 @@ async function setupNotificationBell() {
             console.log('Accepted session in firestore', n.requestID);
             await updateNotification(n.id, { status: 'accepted', unread: false });
             console.log('Updated notification status', n.id);
-            // notify student
             await createNotification({ recipientID: n.senderID, senderID: curr.id, senderName: curr.name || 'Someone', subject: n.subject, date: n.date, time: n.time, requestID: n.requestID, status: 'accepted', message: 'Your request has been accepted. Check the Sessions page for further details.' });
             console.log('Created notification for student', n.senderID);
             setButtonLoading(accept, '', false);
@@ -554,7 +529,6 @@ async function setupNotificationBell() {
             console.log('Rejected session in firestore', n.requestID);
             await updateNotification(n.id, { status: 'declined', unread: false });
             console.log('Updated notification status to declined', n.id);
-            // notify student
             await createNotification({ recipientID: n.senderID, senderID: curr.id, senderName: curr.name || 'Someone', subject: n.subject, date: n.date, time: n.time, requestID: n.requestID, status: 'declined', message: 'Your request has been declined.' });
             setButtonLoading(decline, '', false);
             const card = document.querySelector(`.notif-card[data-id="${n.id}"]`);
@@ -564,14 +538,12 @@ async function setupNotificationBell() {
         actions.appendChild(accept); actions.appendChild(decline);
       } else if (st === 'accepted') {
         const badge = document.createElement('span'); badge.className = 'badge-status badge-accepted'; badge.textContent = 'Accepted';
-        // style to match app palette and typography
         badge.style.background = 'linear-gradient(135deg, #d5b893, #6f4d38)'; badge.style.color = '#fff'; badge.style.padding = '6px 10px'; badge.style.borderRadius = '14px'; badge.style.fontWeight = '600'; badge.style.fontFamily = 'inherit'; actions.appendChild(badge);
       } else if (st === 'declined') {
         const badge = document.createElement('span'); badge.className = 'badge-status badge-declined'; badge.textContent = 'Declined';
         badge.style.backgroundColor = '#6c757d'; badge.style.color = '#fff'; badge.style.padding = '6px 10px'; badge.style.borderRadius = '14px'; badge.style.fontWeight = '600'; badge.style.fontFamily = 'inherit'; actions.appendChild(badge);
       }
       card.appendChild(actions);
-      // visual unread marker (only for unread items)
       if (n.unread && !viewed.has(n.id)) {
         card.classList.add('notif-unread');
         card.style.borderLeft = '4px solid #d5b893';
@@ -580,7 +552,6 @@ async function setupNotificationBell() {
         card.style.borderLeft = '';
       }
 
-      // timestamp footer (small, light)
       const timeEl = document.createElement('div'); timeEl.className = 'notif-time';
       timeEl.style.fontSize = '12px'; timeEl.style.color = 'rgba(255,255,255,0.6)'; timeEl.style.marginTop = '8px';
       const created = n.createdAt && n.createdAt.toDate ? n.createdAt.toDate() : (n.createdAt ? new Date(n.createdAt) : null);
@@ -603,11 +574,9 @@ async function setupNotificationBell() {
     return `${new Date(d).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}, ${time}`;
   }
 
-  // subscribe to notifications
   if (unsub) unsub();
   unsub = subscribeNotificationsForUser(curr.id, (list) => renderList(list));
 
-  // toggle panel
   bell.addEventListener('click', (e) => {
     e.preventDefault();
     if (panel.classList.contains('open')) {
@@ -695,11 +664,9 @@ async function initHomePage() {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  // Toggle panel (preserve existing toggle behavior) and focus email when opened
   if (loginToggle) {
     loginToggle.addEventListener('click', () => {
       loginPanel.classList.toggle('hidden');
-      // keep ARIA in sync
       loginPanel.setAttribute('aria-hidden', String(loginPanel.classList.contains('hidden')));
       if (!loginPanel.classList.contains('hidden')) {
         setTimeout(() => emailInput.focus(), 180);
@@ -707,7 +674,6 @@ async function initHomePage() {
     });
   }
 
-  // Email inline validation
   emailInput.addEventListener('input', () => {
     const val = (emailInput.value || '').trim();
     if (!val) {
@@ -721,7 +687,6 @@ async function initHomePage() {
     }
   });
 
-  // Password show/hide toggle
   if (togglePasswordBtn) {
     const eye = togglePasswordBtn.querySelector('.icon-eye');
     const eyeSlash = togglePasswordBtn.querySelector('.icon-eye-slash');
@@ -734,7 +699,6 @@ async function initHomePage() {
     });
   }
 
-  // Caps Lock detection and Enter key support in password field
   const capsCheck = (e) => {
     if (e.getModifierState && e.getModifierState('CapsLock')) {
       capsWarning.textContent = 'Caps Lock is on.';
@@ -745,7 +709,6 @@ async function initHomePage() {
   passwordInput.addEventListener('keydown', (e) => {
     capsCheck(e);
     if (e.key === 'Enter') {
-      // trigger form submission
       e.preventDefault();
       loginForm.requestSubmit ? loginForm.requestSubmit() : loginForm.submit();
     }
@@ -776,7 +739,6 @@ async function initHomePage() {
     if (processing) return;
     processing = true;
 
-    // disable button, show spinner, update text
     const btnText = signInButton?.querySelector('.btn-text');
     const btnSpinner = signInButton?.querySelector('.btn-spinner');
     if (signInButton) signInButton.disabled = true;
@@ -797,11 +759,9 @@ async function initHomePage() {
       }
 
       setCurrentUser(user);
-      // Redirect to unified dashboard
       location.href = 'student.html';
     } catch (err) {
       console.log('login attempt error', err);
-      // restore button state
       processing = false;
       if (signInButton) signInButton.disabled = false;
       if (btnSpinner) btnSpinner.classList.add('hidden');
@@ -829,7 +789,10 @@ async function initRegisterPage() {
     container.innerHTML = '';
     const subjectList = items.length ? items : SUBJECTS;
 
-    subjectList.forEach((subject) => {
+    // FIX: Build combined set — default subjects + any custom subjects in selectedArray
+    const allSubjects = [...new Set([...subjectList, ...selectedArray])];
+
+    allSubjects.forEach((subject) => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'chip' + (selectedArray.includes(subject) ? ' active' : '');
@@ -878,7 +841,60 @@ async function initRegisterPage() {
           selectedArray.push(val);
           rerenderFn();
         });
-        input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addConfirm.click(); });
+        // Subject suggestions dropdown
+        const suggestionsEl = document.createElement('div');
+        suggestionsEl.className = 'subject-suggestions';
+        inputWrap.style.position = 'relative';
+        inputWrap.appendChild(suggestionsEl);
+
+        function updateSuggestions() {
+          const val = input.value.trim().toLowerCase();
+          suggestionsEl.innerHTML = '';
+          if (!val || val.length < 1) { suggestionsEl.classList.remove('open'); return; }
+          // FIX: Search all items including global subjects
+          const allSubjects = items.concat(selectedArray.filter(s => !items.includes(s)));
+          const matches = allSubjects.filter(s => s.toLowerCase().includes(val) && !selectedArray.includes(s));
+          if (!matches.length) { suggestionsEl.classList.remove('open'); return; }
+          matches.forEach(m => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+            item.textContent = m;
+            item.addEventListener('click', () => {
+              if (!selectedArray.includes(m)) {
+                if (oppositeArray && oppositeArray.includes(m)) oppositeArray.splice(oppositeArray.indexOf(m), 1);
+                selectedArray.push(m);
+              }
+              input.value = '';
+              suggestionsEl.classList.remove('open');
+              rerenderFn();
+            });
+            suggestionsEl.appendChild(item);
+          });
+          suggestionsEl.classList.add('open');
+        }
+
+        input.addEventListener('input', updateSuggestions);
+        input.addEventListener('focus', updateSuggestions);
+        input.addEventListener('blur', () => { setTimeout(() => suggestionsEl.classList.remove('open'), 150); });
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = input.value.trim();
+            if (!val) return;
+            // Check for exact or partial match
+            const allSubjects = items.concat(selectedArray.filter(s => !items.includes(s)));
+            const match = allSubjects.find(s => s.toLowerCase() === val.toLowerCase() || s.toLowerCase().includes(val.toLowerCase()));
+            if (match && !selectedArray.includes(match)) {
+              if (oppositeArray && oppositeArray.includes(match)) oppositeArray.splice(oppositeArray.indexOf(match), 1);
+              selectedArray.push(match);
+              input.value = '';
+              suggestionsEl.classList.remove('open');
+              rerenderFn();
+            } else {
+              addConfirm.click();
+            }
+          }
+        });
         inputWrap.appendChild(input);
         inputWrap.appendChild(addConfirm);
         container.appendChild(inputWrap);
@@ -1041,9 +1057,8 @@ async function initDashboardPage() {
   if (findBtn) findBtn.addEventListener('click', (e) => { e.preventDefault(); showTutors(); });
   if (helpBtn) helpBtn.addEventListener('click', (e) => { e.preventDefault(); showStudents(); });
 
-  // Add search and filter controls (hidden until mode selected)
   let allMatchesCache = [];
-  let currentMode = null; // 'tutors' or 'students'
+  let currentMode = null;
 
   function renderFilteredCards() {
     if (!resultsContainer || !allMatchesCache.length) {
@@ -1076,7 +1091,6 @@ async function initDashboardPage() {
       return true;
     });
 
-    // Sort
     if (sortBy === 'rating') filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     else if (sortBy === 'reviews') filtered.sort((a, b) => (b.totalRatings || 0) - (a.totalRatings || 0));
     else if (sortBy === 'name-asc') filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -1092,9 +1106,7 @@ async function initDashboardPage() {
     resultsContainer.innerHTML = cards || `<p class="hint">No ${currentMode === 'tutors' ? 'tutors' : 'students'} match your filters.</p>`;
   }
 
-  // Build context-aware search/filter UI (shown when mode is selected)
   function buildFilterUI(mode) {
-    // Remove existing filter if present
     const existing = document.querySelector('.community-filters');
     if (existing) existing.remove();
 
@@ -1102,7 +1114,6 @@ async function initDashboardPage() {
     filterDiv.className = 'community-filters card';
     filterDiv.style.cssText = 'padding:1rem;margin-bottom:1rem;';
 
-    // Dynamic subject options based on mode
     let subjectOptions = '<option value="all">All Subjects</option>';
     if (mode === 'tutors') {
       (user.weakSubjects || []).forEach(s => {
@@ -1124,14 +1135,12 @@ async function initDashboardPage() {
     `;
     resultsContainer?.parentNode?.insertBefore(filterDiv, resultsContainer);
 
-    // Event listeners for filter changes
     filterDiv.querySelectorAll('input, select').forEach(el => {
       el.addEventListener('input', renderFilteredCards);
       el.addEventListener('change', renderFilteredCards);
     });
   }
 
-  // Hook into existing show functions
   showTutors = async function() {
     currentMode = 'tutors';
     if (!resultsContainer) return;
@@ -1149,14 +1158,11 @@ async function initDashboardPage() {
     renderFilteredCards();
   };
 
-  // make notifications available on dashboard
   setupNotificationBell();
 
-  // Subscribe sessions to update request buttons state (prevent duplicates)
   try {
     if (user && user.id) {
       subscribeSessionsForUser(user.id, (list) => {
-        // for each session where current user is student or tutor, disable matching buttons
         list.forEach(s => {
           const otherId = (s.studentID === user.id) ? s.tutorID : s.studentID;
           const selector = `[data-id="${otherId}"] .request-session, [data-id="${otherId}"] .offer-help`;
@@ -1172,7 +1178,6 @@ async function initDashboardPage() {
     }
   } catch (e) { console.error(e); }
 
-  // Modal + toast helpers
   const modalContainer = document.getElementById('modalContainer');
   const toastContainer = document.getElementById('toastContainer');
 
@@ -1188,7 +1193,6 @@ async function initDashboardPage() {
     modalContainer.innerHTML = '<div class="modal" role="dialog">' + contentHtml + '</div>';
     modalContainer.classList.remove('hidden');
     modalContainer.setAttribute('aria-hidden', 'false');
-    // close on background click
     modalContainer.addEventListener('click', (e) => {
       if (e.target === modalContainer) closeModal();
     }, { once: true });
@@ -1217,7 +1221,6 @@ async function initDashboardPage() {
     }
   }
 
-  // Delegate actions
   if (resultsContainer) {
     resultsContainer.addEventListener('click', async (event) => {
       const target = event.target;
@@ -1239,12 +1242,9 @@ async function initDashboardPage() {
       }
     });
   }
-
-  // Profile modal: not defined inside dashboard; shared globally below.
 }
 
 async function openEditProfileModal(targetUser) {
-  // Instead of a modal, replace the profile content with a full settings-style page
   const profileContent = document.getElementById('profileContent');
   if (!profileContent) return;
   const currStrong = [...(targetUser.strongSubjects || [])];
@@ -1262,7 +1262,10 @@ async function openEditProfileModal(targetUser) {
       if (!allItems.includes(s)) allItems.push(s);
     });
 
-    allItems.forEach(item => {
+    // Build combined set — default items + any custom items in selectedArray
+    const allSubjects = [...new Set([...allItems, ...selectedArray])];
+
+    allSubjects.forEach(item => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'chip' + (selectedArray.includes(item) ? ' active' : '');
@@ -1298,6 +1301,39 @@ async function openEditProfileModal(targetUser) {
           selectedArray.push(val);
           if (rerenderFn) rerenderFn();
         });
+        // Subject suggestions dropdown
+        const suggestionsEl = document.createElement('div');
+        suggestionsEl.className = 'subject-suggestions';
+        inputWrap.style.position = 'relative';
+        inputWrap.appendChild(suggestionsEl);
+
+        function updateSuggestions() {
+          const val = input.value.trim().toLowerCase();
+          suggestionsEl.innerHTML = '';
+          if (!val || val.length < 1) { suggestionsEl.classList.remove('open'); return; }
+          const allSubjects = [...new Set([...items, ...selectedArray])];
+          const matches = allSubjects.filter(s => s.toLowerCase().includes(val) && !selectedArray.includes(s));
+          if (!matches.length) { suggestionsEl.classList.remove('open'); return; }
+          matches.forEach(m => {
+            const item = document.createElement('div');
+            item.className = 'suggestion-item';
+            item.textContent = m;
+            item.addEventListener('click', () => {
+              if (!selectedArray.includes(m)) {
+                selectedArray.push(m);
+              }
+              input.value = '';
+              suggestionsEl.classList.remove('open');
+              if (rerenderFn) rerenderFn();
+            });
+            suggestionsEl.appendChild(item);
+          });
+          suggestionsEl.classList.add('open');
+        }
+
+        input.addEventListener('input', updateSuggestions);
+        input.addEventListener('focus', updateSuggestions);
+        input.addEventListener('blur', () => { setTimeout(() => suggestionsEl.classList.remove('open'), 150); });
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addConfirm.click(); });
         inputWrap.appendChild(input);
         inputWrap.appendChild(addConfirm);
@@ -1472,16 +1508,15 @@ async function initProfilePage() {
     const reviewsSummary = `<div class="meta">${starsHtml}<span class="review-count"> ${targetUser.totalRatings || 0} Reviews</span></div>`;
     const editBtn = isOwnProfile ? `<button id="editProfileBtn" class="btn" style="position:absolute;top:0;right:0;padding:6px 10px;font-size:0.8rem;">✎ Edit</button>` : '';
 
-    // Load profile statistics
     let statsHtml = '';
     try {
       const allSessions = await getAllSessions();
       const userSessions = allSessions.filter(s => s.studentID === targetUser.id || s.tutorID === targetUser.id);
       const completedSessions = userSessions.filter(s => (s.status || '').toLowerCase() === 'completed');
+      const offersSent = allSessions.filter(s => s.tutorID === targetUser.id && (s.status || '').toLowerCase() !== 'pending').length;
+      const requestsReceived = allSessions.filter(s => s.studentID === targetUser.id).length;
       const sessionsCount = completedSessions.length;
       const avgRating = targetUser.rating != null ? ratingToStars(targetUser.rating) : 0;
-      const reviewsCount = targetUser.totalRatings || 0;
-      const subjectsCount = new Set([...(targetUser.strongSubjects || []), ...(targetUser.weakSubjects || [])]).size;
 
       statsHtml = `
         <div class="profile-stats">
@@ -1490,16 +1525,16 @@ async function initProfilePage() {
             <div class="profile-stat-label">Average Rating</div>
           </div>
           <div class="profile-stat-card">
+            <div class="profile-stat-number">${offersSent}</div>
+            <div class="profile-stat-label">Offers Sent</div>
+          </div>
+          <div class="profile-stat-card">
+            <div class="profile-stat-number">${requestsReceived}</div>
+            <div class="profile-stat-label">Requests Received</div>
+          </div>
+          <div class="profile-stat-card">
             <div class="profile-stat-number">${sessionsCount}</div>
             <div class="profile-stat-label">Sessions Completed</div>
-          </div>
-          <div class="profile-stat-card">
-            <div class="profile-stat-number">${reviewsCount}</div>
-            <div class="profile-stat-label">Reviews Received</div>
-          </div>
-          <div class="profile-stat-card">
-            <div class="profile-stat-number">${subjectsCount}</div>
-            <div class="profile-stat-label">Subjects Shared</div>
           </div>
         </div>
       `;
@@ -1516,7 +1551,6 @@ async function initProfilePage() {
   }
 
   await renderProfile(userToShow);
-  // load reviews area
   (async () => {
     try {
       const reviews = await getReviewsForUser(userToShow.id);
@@ -1536,7 +1570,6 @@ async function initProfilePage() {
     } catch (err) { console.error('Failed to load reviews', err); }
   })();
 
-  // ensure notification bell works on profile page
   setupNotificationBell();
 }
 
@@ -1546,7 +1579,6 @@ async function initSessionsPage() {
   const allSessionsEl = document.getElementById('allSessions');
   if (!allSessionsEl) return;
 
-  // render helper
   async function renderSessions(list) {
     const users = await getAllUsers();
     const userMap = new Map(users.map((u) => [u.id, u]));
@@ -1557,7 +1589,6 @@ async function initSessionsPage() {
     const active = sessions.filter(s => (s.status || '').toLowerCase() !== 'completed');
     const completed = sessions.filter(s => (s.status || '').toLowerCase() === 'completed');
 
-    // Sort active sessions: accepted (upcoming first), then pending (newest first), then declined
     function getSessionDateMs(s) {
       if (!s.date) return 0;
       const parsed = new Date(s.date + 'T12:00:00');
@@ -1568,26 +1599,21 @@ async function initSessionsPage() {
       const aOrd = order[(a.status || '').toLowerCase()] ?? 3;
       const bOrd = order[(b.status || '').toLowerCase()] ?? 3;
       if (aOrd !== bOrd) return aOrd - bOrd;
-      // For accepted sessions: upcoming dates first (closest future date on top)
       const aStatus = (a.status || '').toLowerCase();
       const bStatus = (b.status || '').toLowerCase();
       if (aStatus === 'accepted' && bStatus === 'accepted') {
         const aDateMs = getSessionDateMs(a);
         const bDateMs = getSessionDateMs(b);
-        // Both have dates: sort by closest to today (ascending)
         if (aDateMs && bDateMs) return aDateMs - bDateMs;
-        // One has no date: put with-date first
         if (aDateMs) return -1;
         if (bDateMs) return 1;
       }
-      // For pending/declined: newest first by createdAt
       const ta = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
       const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
       return tb - ta;
     }
     active.sort(sortActiveSessions);
 
-    // Sort completed sessions: newest completion first
     function sortCompletedSessions(a, b) {
       const ta = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
       const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
@@ -1605,7 +1631,6 @@ async function initSessionsPage() {
     sessionsLayout.appendChild(completedColumn);
     allSessionsEl.appendChild(sessionsLayout);
 
-    // Active section with wrapper
     const activeSection = document.createElement('div');
     activeSection.className = 'sessions-section';
     const activeHeader = document.createElement('h2'); activeHeader.textContent = 'Active Sessions'; activeSection.appendChild(activeHeader);
@@ -1638,7 +1663,6 @@ async function initSessionsPage() {
     });
     activeColumn.appendChild(activeSection);
 
-    // Completed section with wrapper
     const completedSection = document.createElement('div');
     completedSection.className = 'sessions-section';
     const compHeader = document.createElement('h2'); compHeader.textContent = 'Completed Sessions'; completedSection.appendChild(compHeader);
@@ -1648,7 +1672,6 @@ async function initSessionsPage() {
         const el = document.createElement('div'); el.innerHTML = sessionCard(s, userMap); const card = el.firstElementChild;
         const statusEl = card.querySelector('.status'); statusEl.textContent = 'Completed'; statusEl.className = 'status completed';
         const otherId = curr.id === s.tutorID ? s.studentID : s.tutorID; const otherName = (userMap.get(otherId) || {}).name || 'Participant';
-        // handle review display and submission; hide form if already reviewed locally
         const reviewedKey = `reviewed_${s.id}_${curr.id}`;
         const savedKey = `review_${s.id}_${curr.id}`;
         if (localStorage.getItem(reviewedKey)) {
@@ -1700,7 +1723,6 @@ async function initSessionsPage() {
             });
             stars.appendChild(sEl);
           }
-          // Clear preview when leaving the whole stars container
           stars.addEventListener('mouseleave', clearPreview);
           ratingContainer.querySelector('.submit-rating')?.addEventListener('click', async (ev) => {
             const btn = ev.currentTarget;
@@ -1712,7 +1734,6 @@ async function initSessionsPage() {
               else await submitRating(s.id, null, selectedRating);
               const reviewerName = curr.name || 'Someone';
               await addReview((curr.id === s.studentID) ? s.tutorID : s.studentID, curr.id, reviewerName, selectedRating, feedback);
-              // persist locally so the form stays hidden on future visits in this browser
               const savedData = { rating: selectedRating, feedback, reviewerName, date: new Date().toISOString() };
               localStorage.setItem(reviewedKey, '1');
               localStorage.setItem(savedKey, JSON.stringify(savedData));
@@ -1741,10 +1762,7 @@ async function initSessionsPage() {
     completedColumn.appendChild(completedSection);
   }
 
-  // subscribe for realtime updates
   const unsub = subscribeSessionsForUser(curr.id, (list) => renderSessions(list));
-
-  // notifications on sessions page
   setupNotificationBell();
 }
 
@@ -1759,20 +1777,17 @@ function logout() {
 setActiveNav();
 logout();
 
-// FAQ accordion (landing page)
 function initFAQ() {
   document.querySelectorAll('.faq-question').forEach(btn => {
     btn.addEventListener('click', () => {
       const item = btn.closest('.faq-item');
       const isOpen = item.classList.contains('open');
-      // Close all others
       document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
       if (!isOpen) item.classList.add('open');
     });
   });
 }
 
-// Stats count-up animation
 function initStats() {
   const statsEl = document.getElementById('statsSection');
   if (!statsEl) return;
@@ -1783,7 +1798,6 @@ function initStats() {
       const allSessions = await getAllSessions();
       const completed = allSessions.filter(s => (s.status || '').toLowerCase() === 'completed');
 
-      // Average rating
       const ratedUsers = allUsers.filter(u => (u.totalRatings || 0) > 0);
       let avgRating = 0;
       if (ratedUsers.length) {
@@ -1791,20 +1805,17 @@ function initStats() {
         avgRating = (totalR / ratedUsers.length).toFixed(1);
       }
 
-      // Count unique peer connections (unique student-tutor pairs that had sessions)
       const uniquePairs = new Set();
       allSessions.forEach(s => {
         const pair = [s.studentID, s.tutorID].sort().join('_');
         uniquePairs.add(pair);
       });
-      // Count all unique subjects across users
       const allSubjectsSet = new Set();
       allUsers.forEach(u => {
         (u.strongSubjects || []).forEach(s => allSubjectsSet.add(s));
         (u.weakSubjects || []).forEach(s => allSubjectsSet.add(s));
       });
 
-      // Count active tutors (users who have at least one strong subject and have been involved in sessions)
       const tutorIds = new Set();
       allSessions.forEach(s => {
         if (s.tutorID) tutorIds.add(s.tutorID);
@@ -1818,7 +1829,6 @@ function initStats() {
         statTutors: activeTutors
       };
 
-      // Animate count-up
       Object.entries(targets).forEach(([id, target]) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -1831,7 +1841,6 @@ function initStats() {
         function animate(now) {
           const elapsed = now - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          // Ease out cubic
           const eased = 1 - Math.pow(1 - progress, 3);
           const current = eased * numTarget;
           el.textContent = isFloat ? current.toFixed(1) : Math.round(current);
@@ -1842,7 +1851,6 @@ function initStats() {
     } catch (e) { console.warn('Stats load error', e); }
   }
 
-  // Use IntersectionObserver to trigger when visible
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -1854,9 +1862,8 @@ function initStats() {
   observer.observe(statsEl);
 }
 
-// Subtle background for inner pages
 function initPageBackground() {
-  if (page === 'home') return; // Landing page has its own hero-bg
+  if (page === 'home') return;
   const bg = document.createElement('div');
   bg.className = 'hero-bg';
   bg.setAttribute('aria-hidden', 'true');
@@ -1870,9 +1877,60 @@ logout();
 initFAQ();
 initStats();
 initPageBackground();
+initMobileMenu();
+initBioCounter();
+initPhoneValidation();
 
 if (page === 'home') initHomePage();
 if (page === 'register') initRegisterPage();
 if (page === 'student' || page === 'tutor') initDashboardPage();
 if (page === 'profile') initProfilePage();
 if (page === 'sessions') initSessionsPage();
+
+function initMobileMenu() {
+  const btn = document.getElementById('mobileMenuBtn');
+  const nav = document.getElementById('mainNav');
+  if (!btn || !nav) return;
+  btn.addEventListener('click', () => {
+    nav.classList.toggle('open');
+  });
+  nav.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => nav.classList.remove('open'));
+  });
+  document.addEventListener('click', (e) => {
+    if (!nav.contains(e.target) && !btn.contains(e.target)) {
+      nav.classList.remove('open');
+    }
+  });
+}
+
+function initBioCounter() {
+  const bioInput = document.getElementById('bioInput');
+  const bioCounter = document.getElementById('bioCounter');
+  if (!bioInput || !bioCounter) return;
+  function update() {
+    const len = (bioInput.value || '').length;
+    bioCounter.textContent = `${len} / 300`;
+    if (len >= 300) bioCounter.style.color = '#ef4444';
+    else if (len >= 250) bioCounter.style.color = '#f59e0b';
+    else bioCounter.style.color = 'rgba(226,232,240,0.7)';
+  }
+  bioInput.addEventListener('input', update);
+  update();
+}
+
+function initPhoneValidation() {
+  const phoneInput = document.querySelector('input[name="phone"]');
+  const phoneError = document.getElementById('phoneError');
+  if (!phoneInput) return;
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = phoneInput.value.replace(/[^0-9]/g, '').slice(0, 10);
+    if (phoneError) {
+      if (phoneInput.value.length > 0 && phoneInput.value.length !== 10) {
+        phoneError.textContent = 'Phone must be exactly 10 digits.';
+      } else {
+        phoneError.textContent = '';
+      }
+    }
+  });
+}

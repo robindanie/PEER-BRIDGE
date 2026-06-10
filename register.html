@@ -13,7 +13,10 @@
 <body data-page="register">
   <header class="navbar">
     <a href="index.html" class="logo">PeerBridge</a>
-    <nav>
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+    <nav id="mainNav">
       <a href="student.html">Community</a>
       <a href="sessions.html">Sessions</a>
       <a href="profile.html">Profile</a>
@@ -38,8 +41,8 @@
             <label>Date of Birth<input name="dob" type="date" required /></label>
             <label>Gender<select name="gender" required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></label>
             <label>Email<input name="email" type="email" required placeholder="you@college.edu" /></label>
-            <label>Phone<input name="phone" type="tel" placeholder="10-digit mobile" /></label>
-            <label>Bio<textarea name="bio" rows="2" placeholder="Tell us about yourself..."></textarea></label>
+            <label>Phone<input name="phone" type="tel" placeholder="10-digit mobile" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" /><span class="field-error" id="phoneError"></span></label>
+            <label>Bio<textarea name="bio" rows="2" placeholder="Tell us about yourself..." maxlength="300" id="bioInput"></textarea><span class="bio-counter" id="bioCounter">0 / 300</span></label>
           </div>
         </div>
 
@@ -55,7 +58,7 @@
             <label>City<input name="city" value="Madurai" /></label>
             <label>State<input name="state" value="Tamil Nadu" /></label>
             <label>Postal Code<input name="postalCode" placeholder="e.g. 625001" /></label>
-            <label>Region / Locality<input name="region" placeholder="e.g. Madurai" /></label>
+            <label>Region / Locality<input name="region" placeholder="e.g. Thirunagar" /></label>
           </div>
         </div>
 
