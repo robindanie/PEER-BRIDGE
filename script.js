@@ -913,7 +913,7 @@ async function initRegisterPage() {
     }
 
     setTimeout(() => {
-      location.href = 'index.html';
+      location.href = 'student.html';
     }, 1300);
   });
 }

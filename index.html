@@ -11,6 +11,55 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body data-page="home">
+  <!-- Ambient background graphics -->
+  <div class="hero-bg">
+    <div class="hero-network-left" aria-hidden="true">
+      <svg viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="200" cy="200" r="120" stroke="rgba(213,184,147,0.12)" stroke-width="0.8"/>
+        <circle cx="200" cy="200" r="80" stroke="rgba(213,184,147,0.08)" stroke-width="0.6"/>
+        <circle cx="200" cy="200" r="160" stroke="rgba(96,165,250,0.06)" stroke-width="0.5" stroke-dasharray="8 6"/>
+        <line x1="120" y1="120" x2="280" y2="280" stroke="rgba(213,184,147,0.1)" stroke-width="0.5"/>
+        <line x1="280" y1="120" x2="120" y2="280" stroke="rgba(213,184,147,0.1)" stroke-width="0.5"/>
+        <line x1="200" y1="80" x2="200" y2="320" stroke="rgba(213,184,147,0.08)" stroke-width="0.4"/>
+        <line x1="80" y1="200" x2="320" y2="200" stroke="rgba(213,184,147,0.08)" stroke-width="0.4"/>
+        <circle cx="200" cy="200" r="4" fill="rgba(213,184,147,0.25)"/>
+        <circle cx="280" cy="120" r="2.5" fill="rgba(96,165,250,0.2)"/>
+        <circle cx="120" cy="280" r="2.5" fill="rgba(96,165,250,0.2)"/>
+        <circle cx="280" cy="280" r="2.5" fill="rgba(96,165,250,0.2)"/>
+        <circle cx="120" cy="120" r="2.5" fill="rgba(96,165,250,0.2)"/>
+        <circle cx="200" cy="80" r="2" fill="rgba(111,77,56,0.2)"/>
+        <circle cx="200" cy="320" r="2" fill="rgba(111,77,56,0.2)"/>
+        <circle cx="80" cy="200" r="2" fill="rgba(111,77,56,0.2)"/>
+        <circle cx="320" cy="200" r="2" fill="rgba(111,77,56,0.2)"/>
+        <circle cx="260" cy="150" r="1.5" fill="rgba(213,184,147,0.15)"/>
+        <circle cx="150" cy="260" r="1.5" fill="rgba(213,184,147,0.15)"/>
+        <circle cx="340" cy="100" r="1.5" fill="rgba(213,184,147,0.1)"/>
+        <line x1="200" y1="80" x2="280" y2="120" stroke="rgba(213,184,147,0.06)" stroke-width="0.4"/>
+        <line x1="200" y1="320" x2="120" y2="280" stroke="rgba(213,184,147,0.06)" stroke-width="0.4"/>
+        <line x1="80" y1="200" x2="120" y2="120" stroke="rgba(213,184,147,0.06)" stroke-width="0.4"/>
+        <line x1="320" y1="200" x2="280" y2="280" stroke="rgba(213,184,147,0.06)" stroke-width="0.4"/>
+      </svg>
+    </div>
+    <div class="hero-satellite-right" aria-hidden="true">
+      <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="100" cy="180" rx="20" ry="6" stroke="rgba(213,184,147,0.1)" stroke-width="0.5"/>
+        <rect x="92" y="100" width="16" height="16" rx="2" stroke="rgba(213,184,147,0.15)" stroke-width="0.6" fill="rgba(213,184,147,0.03)"/>
+        <line x1="100" y1="116" x2="100" y2="140" stroke="rgba(213,184,147,0.12)" stroke-width="0.5"/>
+        <line x1="100" y1="140" x2="80" y2="180" stroke="rgba(213,184,147,0.08)" stroke-width="0.4"/>
+        <line x1="100" y1="140" x2="120" y2="180" stroke="rgba(213,184,147,0.08)" stroke-width="0.4"/>
+        <circle cx="100" cy="100" r="4" fill="rgba(96,165,250,0.15)"/>
+        <circle cx="110" cy="95" r="2" fill="rgba(213,184,147,0.08)"/>
+        <circle cx="90" cy="105" r="2" fill="rgba(213,184,147,0.08)"/>
+        <line x1="100" y1="60" x2="100" y2="90" stroke="rgba(96,165,250,0.08)" stroke-width="0.4" stroke-dasharray="3 4"/>
+        <circle cx="100" cy="55" r="3" fill="rgba(96,165,250,0.08)"/>
+        <line x1="80" y1="100" x2="70" y2="95" stroke="rgba(213,184,147,0.06)" stroke-width="0.3"/>
+        <line x1="120" y1="100" x2="130" y2="95" stroke="rgba(213,184,147,0.06)" stroke-width="0.3"/>
+        <line x1="70" y1="95" x2="60" y2="100" stroke="rgba(213,184,147,0.06)" stroke-width="0.3"/>
+        <line x1="130" y1="95" x2="140" y2="100" stroke="rgba(213,184,147,0.06)" stroke-width="0.3"/>
+      </svg>
+    </div>
+  </div>
+
   <header class="navbar">
     <a href="index.html" class="logo">PeerBridge</a>
     <nav>
@@ -22,7 +71,7 @@
   </header>
 
   <main class="container hero">
-    <section class="card hero-card">
+    <section class="hero-card">
       <p class="eyebrow">Velammal College of Engineering and Technology</p>
       <h1>Hello Velammalian! Welcome to PeerBridge.</h1>
       <p>Connect, learn, and grow with a smart peer tutoring network built for your campus community.</p>
@@ -37,19 +86,17 @@
         </div>
         <form id="loginForm" novalidate>
           <div class="field">
-            <label for="emailInput">Email</label>
             <div class="input-wrapper">
               <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-              <input id="emailInput" type="email" name="email" required autocomplete="username" />
+              <input id="emailInput" type="email" name="email" placeholder="Enter your email" required autocomplete="username" />
             </div>
             <div id="emailError" class="field-error" aria-live="polite"></div>
           </div>
 
           <div class="field">
-            <label for="passwordInput">Password</label>
             <div class="password-wrapper">
               <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              <input id="passwordInput" type="password" name="password" required minlength="6" autocomplete="current-password" />
+              <input id="passwordInput" type="password" name="password" placeholder="Enter your password" required minlength="6" autocomplete="current-password" />
               <button type="button" id="togglePassword" class="icon-btn" aria-label="Show password">
                 <svg class="icon-eye" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 <svg class="icon-eye-slash hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a22.65 22.65 0 0 1 5.36-6.14"></path><path d="M1 1l22 22"></path></svg>
@@ -82,7 +129,8 @@
         <h3>Peer Ratings</h3>
         <p>Students rate sessions to build a trusted learning network.</p>
       </div>
-    </section>  </main>
+    </section>
+  </main>
 
   <footer class="footer">
     PeerBridge © 2026 | Velammal College of Engineering and Technology
