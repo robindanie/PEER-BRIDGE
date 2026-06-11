@@ -411,9 +411,13 @@ async function hashPassword(rawPassword) {
 }
 
 async function setupNotificationBell() {
-  const bell = document.getElementById('notifBell');
-  const dot = document.getElementById('notifDot');
-  if (!bell) return;
+  // Find bells by original IDs or by new mobile/nav IDs
+  const bell = document.getElementById('notifBell') || document.getElementById('navNotifBell');
+  const dot = document.getElementById('notifDot') || document.getElementById('navNotifDot');
+  // Also find mobile bell for sync
+  const mobileBell = document.getElementById('mobileNotifBell');
+  const mobileDot = document.getElementById('mobileNotifDot');
+  if (!bell && !mobileBell) return;
   const curr = getCurrentUser();
   if (!curr) return;
   let panel = document.querySelector('.notif-panel');
@@ -606,6 +610,18 @@ async function setupNotificationBell() {
       markCurrentNotificationsViewed();
     }
   });
+  // Also wire up mobile bell outside nav drawer
+  if (mobileBell) {
+    mobileBell.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (panel.classList.contains('open')) {
+        panel.classList.remove('open');
+      } else {
+        panel.classList.add('open');
+        markCurrentNotificationsViewed();
+      }
+    });
+  }
 }
 
 function personCard(person, actions = '') {
@@ -1145,7 +1161,7 @@ async function initDashboardPage() {
     }
 
     filterDiv.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 140px 130px 140px;gap:0.65rem;align-items:end;">
+      <div class="filter-grid-row">
         <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Search</label><div style="position:relative;display:flex;align-items:center;"><input id="communitySearch" type="text" placeholder="Search by name, subject, or region..." style="width:100%;padding:0.55rem 0.75rem;padding-right:2.2rem;" /><svg id="searchIconBtn" style="position:absolute;right:10px;cursor:pointer;color:rgba(213,184,147,0.7);flex-shrink:0;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div></div>
         <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Subject</label><select id="subjectFilter" style="width:100%;padding:0.55rem 0.75rem;">${subjectOptions}</select></div>
         <div><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Region</label><input id="regionFilter" type="text" placeholder="Filter..." style="width:100%;padding:0.55rem 0.75rem;" /></div>
